@@ -39,13 +39,40 @@ The OTP value is still sensitive against extraction.
 However, an attacker needs to extract the OTP value from the cache AND perform an MITM attack between the IaC controller and the infrastructure during provisioning.
 In contrast to saving the private key itself, an attacker cannot immediately use the OTP value to impersonate the SSH remote server.
 
-The IaC runner should protect its cache value against extractions in order to mitigate this.
+The IaC runner should protect its cache against extractions in order to mitigate this.
 If the cache cannot be protected, the servers can be provisioned with `regenerate=true`, which will generate a new OTP value on every run, at the cost of re-provisioning every single server each time.
 Even without protection of the cache, using this mechanism provides an additional level of security, especially if the network between the IaC runner and the infrastructure is considered hostile.
 
+
+The following table gives an overview about which attacks the solution is vulnerable against.
+The first four columns give the possible attack vectors, the last four columns indicate whether a particular solution is vulnerable given that *all* of these attacks have succeeded.
+
+| repo read access after provisioning | cache/variables read access after provisioning | MITM IaC<->infra | MITM 3rd party<->infra | Trust on first use | Private Key in repo | ssh-key-download | ssh-key-download, regenerate |
+| - | - | - | - | - | - | - | - |
+|   |   |   |   |   |   |   |   |
+| X |   |   |   |   |   |   |   |
+|   | X |   |   |   |   |   |   |
+| X | X |   |   |   |   |   |   |
+|   |   | X |   | X |   |   |   |
+| X |   | X |   | X | X |   |   |
+|   | X | X |   | X |   | X |   |
+| X | X | X |   | X | X | X |   |
+|   |   |   | X | X |   |   |   |
+| X |   |   | X | X | X |   |   |
+|   | X |   | X | X |   |   |   |
+| X | X |   | X | X | X |   |   |
+|   |   | X | X | X |   |   |   |
+| X |   | X | X | X | X |   |   |
+|   | X | X | X | X |   | X |   |
+| X | X | X | X | X | X | X |   |
+
+Note that the regenerate option is vulnerable to cache access *during* provisioning.
+
+The generated `known_hosts` file must of course be protected against tampering on its way to the users.
+
 ### Usability drawbacks
 
-* The generated `known_hosts` file must be copied manually to the machines connecting via SSH.
+* The generated `known_hosts` file must be copied manually to the machines connecting via SSH. This is mostly relevant if SSH access by other machines is required and the the servers get destroyed regularly.
 * Reading the SSH keys is only possible after the hosts are completely up. This extends the time until completion of the run significantly, especially if the servers perform complex tasks during cloud-init.
 
 ## Dependencies
